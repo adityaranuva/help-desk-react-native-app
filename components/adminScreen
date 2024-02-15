@@ -1,0 +1,99 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  ActivityIndicator,
+  FlatList,
+  TouchableOpacity,
+  ScrollView
+} from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { getTickets } from '../Service/TicketService';
+import { useAuth } from '../context/AuthContext';
+
+const AdminScreen = () => {
+  const [tickets, setTickets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigation = useNavigation();
+  const { signOut } = useAuth();
+
+  const fetchTickets = useCallback(() => {
+    setIsLoading(true);
+    getTickets().then(data => {
+      setTickets(data);
+      setIsLoading(false);
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTickets();
+    }, [fetchTickets])
+  );
+
+  const handleLogout = () => {
+    signOut();
+  };
+
+  return (
+    <View style={styles.container}>
+    <ScrollView >
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <FlatList
+          data={tickets}
+          keyExtractor={item => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.ticket}
+              onPress={() => navigation.navigate('TicketDetail', { ticket: item })}
+            >
+              <View style={styles.ticketContent}>
+                <Text style={styles.ticketText}>Name: {item.name}</Text>
+                <Text style={styles.ticketText}>Summary: {item.description}</Text>
+                <Text style={styles.ticketText}>Status: {item.status}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}  
+    </ScrollView>
+    <View style={styles.logoutButtonContainer}>
+        <Button title="Logout" onPress={handleLogout} />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+  flex: 1,
+  paddingTop: 20,
+  paddingBottom: 5, 
+  justifyContent: 'space-between',
+},
+  ticket: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: '#f9f9f9',
+    marginBottom: 5,
+  },
+  ticketContent: {
+    padding: 20,
+    marginBottom:20
+  },
+  ticketText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  logoutButtonContainer: {
+    marginTop: 15,
+    marginBottom:15
+  },
+});
+
+export default AdminScreen;
