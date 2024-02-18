@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { login } from '../Service/AuthService';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,12 +15,12 @@ const LoginScreen = () => {
     setIsLoading(true);
     login(username, password)
       .then(role => {
-        signIn();
+        signIn(role);
         setIsLoading(false);
         if (role === 'admin') {
-          navigation.replace('Tickets list');
+          navigation.replace('Tickets List');
         } else {
-          navigation.replace('Submit ticket');
+          navigation.replace('Submit Ticket');
         }
       })
       .catch(error => {

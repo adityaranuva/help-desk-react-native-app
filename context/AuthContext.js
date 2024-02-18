@@ -11,15 +11,18 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [authState, setAuthState] = useState({
+    isSignedIn: false,
+    role: null, 
+  });
 
-  const signIn = () => setIsSignedIn(true);
-  const signOut = () => setIsSignedIn(false);
+  const signIn = (role) => setAuthState({ isSignedIn: true, role: role });
+
+  const signOut = () => setAuthState({ isSignedIn: false, role: null });
 
   return (
-    <AuthContext.Provider value={{ isSignedIn, signIn, signOut }}>
+    <AuthContext.Provider value={{ ...authState, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
