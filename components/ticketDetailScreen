@@ -10,7 +10,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
   const handleUpdate = () => {
     updateTicket(ticket.id, status)
       .then(updatedTicket => {
-        Alert.alert("Success", "Ticket status updated.");
+        Alert.alert("Success", "Ticket status updated and email sent.");
         navigation.goBack();
       })
       .catch(error => {
@@ -45,7 +45,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
         useNativeAndroidPickerStyle={false}
       />
       <TouchableOpacity style={styles.button} onPress={handleUpdate}>
-        <Text style={styles.buttonText}>Update Ticket</Text>
+        <Text style={styles.buttonText}>Update Ticket and send email</Text>
       </TouchableOpacity>
     </View>
   );

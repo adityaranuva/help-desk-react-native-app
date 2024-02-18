@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Alert, TextInput, StyleSheet, Image, TouchableOpacity, Text, ActivityIndicator, Button } from 'react-native';
+import { View, Alert, TextInput, ScrollView,StyleSheet, Image, TouchableOpacity, Text, ActivityIndicator, Button } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { submitTicket } from '../Service/TicketService';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { CustomAlert } from './CustomAlert';
+
 
 const UserScreen = () => {
   const [name, setName] = useState('');
@@ -11,9 +13,13 @@ const UserScreen = () => {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const navigation = useNavigation();
   const { signOut } = useAuth();
-
+const [alertConfig, setAlertConfig] = useState({
+  message: '',
+  buttons: [],
+});
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -27,76 +33,122 @@ const UserScreen = () => {
     }
   };
 
+  const validateInputs = () => {
+    let newErrors = {};
+    if (name.length < 3) newErrors.name = 'Name must be at least 3 characters long.';
+    if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) newErrors.email = 'Please enter a valid email address.';
+    if (description.split(' ').length < 2) newErrors.description = 'Description must contain at least 2 words.';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = () => {
+    setErrors({})
     setIsLoading(true);
     const ticketData = {
       name,
       email,
       description,
-      image, // 'image' holds the URI of the selected image
+      image,
     };
 
     submitTicket(ticketData)
       .then((message) => {
         setIsLoading(false);
-        Alert.alert("Success", message, [
-          { text: "OK", onPress: () => {
-            setDescription('');
+      setAlertConfig({
+        message: message,
+        buttons: [
+          { text: "Submit another ticket", onPress: () => {setAlertConfig({ message: '', buttons: [] });            
+          setDescription('');
             setEmail('');
             setImage(null);
             setName('');
-          }}
-        ]);
-      })
-      .catch((error) => {
-        setIsLoading(false);
-        Alert.alert("Ticket submission failed", error.message);
+             setErrors({});
+          }
+ },
+          { text: "Logout", onPress: () => signOut() }
+        ]
+      });
       });
   };
 
   return (
     <View style={styles.container}>
+    <ScrollView>
       <TextInput
         placeholder="Name"
         value={name}
-        onChangeText={setName}
+        placeholderTextColor = 'grey'
+        onChangeText={(text) => {
+          setName(text);
+          if (errors.name && text.length >= 3) {
+            setErrors({ ...errors, name: null });
+          }
+          validateInputs();
+        }}
         style={styles.input}
       />
+      {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
       <TextInput
         placeholder="Email"
+        placeholderTextColor = 'grey'
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          if (errors.email && /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(text)) {
+            setErrors({ ...errors, email: null });
+          }
+          validateInputs();
+
+        }}
         style={styles.input}
       />
+      {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
       <TextInput
         placeholder="Description of the problem"
+        placeholderTextColor = 'grey'
         value={description}
-        onChangeText={setDescription}
+        onChangeText={(text) => {
+          setDescription(text);
+          if (errors.description && text.split(' ').length >= 2) {
+            setErrors({ ...errors, description: null });
+          }
+          validateInputs();
+        }}
         multiline
         style={[styles.input, styles.description]}
       />
+      {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
+
       <TouchableOpacity style={styles.button} onPress={pickImage}>
         <Text style={styles.buttonText}>Select Image</Text>
       </TouchableOpacity>
       {image && <Image source={{ uri: image }} style={styles.previewImage} />}
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+      {!isLoading ? (
+        <TouchableOpacity
+          onPress={handleSubmit}
+          style={[
+            styles.button,
+            (!name || !email || !description || Object.keys(errors).length > 0) ? styles.buttonDisabled : {}
+          ]}
+          disabled={!name || !email || !description || Object.keys(errors).length > 0}
+        >
+          <Text style={styles.buttonText}>Submit Ticket</Text>
+        </TouchableOpacity>
       ) : (
-       <TouchableOpacity
-  onPress={handleSubmit}
-  style={[
-    styles.button,
-    (name.length < 1 || email.length < 5 || description.length < 10 || isLoading) ? styles.buttonDisabled : {}
-  ]}
-  disabled={name.length < 1 || email.length < 5 || description.length < 10 || isLoading}
->
-  <Text style={styles.buttonText}>Submit Ticket</Text>
-</TouchableOpacity>
-
+        <ActivityIndicator size="large" color="#0000ff" />
       )}
-       <View style={styles.logoutButtonContainer}>
+      <View style={styles.logoutButtonContainer}>
         <Button title="Logout" onPress={signOut} />
       </View>
+    </ScrollView>
+    <CustomAlert
+      message={alertConfig.message}
+      buttons={alertConfig.buttons}
+    />
     </View>
   );
 };
@@ -118,7 +170,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   description: {
-    height: 100,
+    height: 50,
     textAlignVertical: 'top',
   },
   button: {
@@ -135,7 +187,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   buttonDisabled: {
-    backgroundColor: '#cccccc', 
+    backgroundColor: '#cccccc',
   },
   previewImage: {
     width: '100%',
@@ -143,9 +195,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 8,
   },
-   logoutButtonContainer: {
+  logoutButtonContainer: {
     marginTop: 15,
-    marginBottom:15
+    marginBottom: 15,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 5,
   },
 });
 
